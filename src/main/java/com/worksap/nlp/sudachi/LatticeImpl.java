@@ -77,7 +77,7 @@ class LatticeImpl implements Lattice {
 
     void expand(int newSize) {
         endLists.ensureCapacity(newSize + 1);
-        for (int i = size + 1; i < newSize + 1; i++) {
+        for (int i = capacity + 1; i < newSize + 1; i++) {
             endLists.add(new ArrayList<>());
         }
         capacity = newSize;
