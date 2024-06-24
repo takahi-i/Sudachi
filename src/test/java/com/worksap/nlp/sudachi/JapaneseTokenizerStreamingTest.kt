@@ -64,4 +64,28 @@ class JapaneseTokenizerStreamingTest {
     val totalLength = result.sumOf { sent -> sent.sumOf { mrph -> mrph.end() - mrph.begin() } }
     assertEquals(5000, totalLength)
   }
+
+  @Test
+  fun streamingReadable() {
+    val reader = StringReader("あ".repeat(5000))
+    val result = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader).asSequence()
+    val totalLength = result.sumOf { sent -> sent.sumOf { mrph -> mrph.end() - mrph.begin() } }
+    assertEquals(5000, totalLength)
+  }
+
+  @Test
+  fun streamingBlockingReadable() {
+    val reader = BadReader("あ".repeat(5000))
+    val result = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader).asSequence()
+    val totalLength = result.sumOf { sent -> sent.sumOf { mrph -> mrph.end() - mrph.begin() } }
+    assertEquals(5000, totalLength)
+  }
+
+  @Test
+  fun streamLongTextShouldNotCauseOOM() {
+    val reader = StringReader("あ".repeat(10 * 1024 * 1024))
+    val result = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader).asSequence()
+    val totalLength = result.sumOf { sent -> sent.sumOf { mrph -> mrph.end() - mrph.begin() } }
+    assertEquals(10 * 1024 * 1024, totalLength)
+  }
 }
