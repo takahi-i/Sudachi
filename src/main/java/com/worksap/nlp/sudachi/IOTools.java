@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Works Applications Co., Ltd.
+ * Copyright (c) 2023-2024 Works Applications Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.worksap.nlp.sudachi;
 
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.CharBuffer;
 
 public class IOTools {
@@ -26,22 +25,21 @@ public class IOTools {
     }
 
     /**
-     * Read as much as possible from reader to the result buffer. Some readers
-     * perform filtering on input by reducing the number of read characters in each
-     * batch.
+     * Read as much as possible from the readable to the result buffer. Use this to
+     * make sure that the buffer is fulfilled or no text left unread.
      *
-     * @param reader
-     *            input reader
+     * @param readable
+     *            input readable
      * @param result
      *            buffer to read into
      * @return number of read characters
      * @throws IOException
      *             when read operation fails
      */
-    public static int readAsMuchAsCan(Reader reader, CharBuffer result) throws IOException {
+    public static int readAsMuchAsCan(Readable readable, CharBuffer result) throws IOException {
         int totalRead = 0;
         while (result.hasRemaining()) {
-            int read = reader.read(result);
+            int read = readable.read(result);
             if (read < 0) {
                 if (totalRead == 0) {
                     return -1;
