@@ -129,12 +129,17 @@ class JapaneseTokenizerStreamingTest {
 
   @Test
   fun failsWhenReaderFails() {
-    val reader = FailReader("あ".repeat(500))
-    // should not fail on the method call
-    val result = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader)
-
+    var reader = FailReader("あ".repeat(500))
+    // should not fail on the instantiation
+    var it = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader)
     assertFailsWith<java.io.UncheckedIOException>(
-        block = { result.next() },
+        block = { it.hasNext() },
+    )
+
+    reader = FailReader("あ".repeat(500))
+    it = tokenizer.tokenizedSentenceIterator(Tokenizer.SplitMode.C, reader)
+    assertFailsWith<java.io.UncheckedIOException>(
+        block = { it.next() },
     )
   }
 }

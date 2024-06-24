@@ -255,7 +255,7 @@ public class JapaneseTokenizerTest {
     }
 
     @Test
-    public void tokenizerWithReadable() {
+    public void tokenizedSentenceIterator() {
         StringReader reader = new StringReader("京都。東京.東京都。京都");
         Iterator<List<Morpheme>> it = tokenizer.tokenizedSentenceIterator(reader);
         assertThat(it.hasNext(), is(true));
@@ -267,10 +267,16 @@ public class JapaneseTokenizerTest {
         assertThat(it.hasNext(), is(true));
         assertThat(it.next().size(), is(1));
         assertThat(it.hasNext(), is(false));
+
+        reader = new StringReader("な。なに。");
+        it = tokenizer.tokenizedSentenceIterator(reader);
+        assertThat(it.hasNext(), is(true));
+        assertThat(it.next().size(), is(3));
+        assertThat(it.hasNext(), is(false));
     }
 
     @Test
-    public void tokenizerWithLongReadable() {
+    public void tokenizedSentenceIteratorWithLongText() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < SentenceDetector.DEFAULT_LIMIT * 2 / 3; i++) {
             sb.append("京都。");
@@ -288,7 +294,7 @@ public class JapaneseTokenizerTest {
     }
 
     @Test
-    public void tokenizerWithReadableAndNormalization() {
+    public void tokenizedSentenceIteratorWithNormalization() {
         StringBuilder sb = new StringBuilder();
         sb.append("東京都…。");
         for (int i = 0; i < SentenceDetector.DEFAULT_LIMIT / 3; i++) {
@@ -305,6 +311,23 @@ public class JapaneseTokenizerTest {
             assertThat(ms.get(0).surface(), is("京都"));
             assertThat(ms.get(1).surface(), is("。"));
         }
+        assertThat(it.hasNext(), is(false));
+    }
+
+    @Test
+    public void tokenizedSentenceIteratorWithSurrogatePair() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < SentenceDetector.DEFAULT_LIMIT - 1; i++) {
+            sb.append("。");
+        }
+        sb.append("😀");
+        StringReader reader = new StringReader(sb.toString());
+        Iterator<List<Morpheme>> it = tokenizer.tokenizedSentenceIterator(reader);
+
+        assertThat(it.hasNext(), is(true));
+        assertThat(it.next().size(), is(SentenceDetector.DEFAULT_LIMIT - 1));
+        assertThat(it.hasNext(), is(true));
+        assertThat(it.next().size(), is(1));
         assertThat(it.hasNext(), is(false));
     }
 
