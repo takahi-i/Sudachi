@@ -17,6 +17,7 @@
 package com.worksap.nlp.sudachi;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.CharBuffer;
 import java.util.Iterator;
 import java.util.List;
@@ -92,7 +93,7 @@ import com.worksap.nlp.sudachi.sentdetect.SentenceDetector;
         try {
             nread = reloadBuffer();
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new UncheckedIOException(e.getMessage(), e);
         }
 
         return !(nread < 0 && !buffer.hasRemaining());
@@ -125,7 +126,7 @@ import com.worksap.nlp.sudachi.sentdetect.SentenceDetector;
         try {
             nread = reloadBuffer();
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            throw new UncheckedIOException(e.getMessage(), e);
         }
 
         if (nread < 0 && !buffer.hasRemaining()) {
