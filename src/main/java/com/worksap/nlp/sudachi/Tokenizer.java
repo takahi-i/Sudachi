@@ -89,7 +89,8 @@ public interface Tokenizer {
      * @return a result of tokenizing
      * @throws IOException
      *             if reading a stream is failed
-     * @deprecated use {@link #tokenizeSentences(SplitMode, Readable)} instead.
+     * @deprecated use {@link #tokenizedSentenceIterator(SplitMode, Readable)}
+     *             instead.
      */
     Iterable<MorphemeList> tokenizeSentences(SplitMode mode, Reader input) throws IOException;
 
@@ -104,7 +105,7 @@ public interface Tokenizer {
      * @throws IOException
      *             if reading a stream is failed
      * @see #tokenizeSentences(SplitMode,Reader)
-     * @deprecated use {@link #tokenizeSentences(Readable)} instead.
+     * @deprecated use {@link #tokenizedSentenceIterator(Readable)} instead.
      */
     default Iterable<MorphemeList> tokenizeSentences(Reader input) throws IOException {
         return tokenizeSentences(SplitMode.C, input);
