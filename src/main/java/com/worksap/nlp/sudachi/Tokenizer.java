@@ -92,6 +92,7 @@ public interface Tokenizer {
      * @deprecated use {@link #tokenizedSentenceIterator(SplitMode, Readable)}
      *             instead.
      */
+    @Deprecated
     Iterable<MorphemeList> tokenizeSentences(SplitMode mode, Reader input) throws IOException;
 
     /**
@@ -107,6 +108,7 @@ public interface Tokenizer {
      * @see #tokenizeSentences(SplitMode,Reader)
      * @deprecated use {@link #tokenizedSentenceIterator(Readable)} instead.
      */
+    @Deprecated
     default Iterable<MorphemeList> tokenizeSentences(Reader input) throws IOException {
         return tokenizeSentences(SplitMode.C, input);
     }

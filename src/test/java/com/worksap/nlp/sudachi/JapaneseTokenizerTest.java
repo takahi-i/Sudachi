@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2022 Works Applications Co., Ltd.
+ * Copyright (c) 2017-2024 Works Applications Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public class JapaneseTokenizerTest {
     JapaneseTokenizer tokenizer;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() {
         dict = TestDictionary.INSTANCE.user1();
         tokenizer = (JapaneseTokenizer) dict.create();
     }
@@ -185,6 +185,11 @@ public class JapaneseTokenizerTest {
         assertThat(it.hasNext(), is(false));
     }
 
+    /**
+     * @deprecated testing deprecated method
+     *             {@link #Tokenizer.tokenizeSentences(Reader)}.
+     */
+    @Deprecated
     @Test
     public void tokenizerWithReader() throws IOException {
         StringReader reader = new StringReader("京都。東京.東京都。京都");
@@ -200,6 +205,11 @@ public class JapaneseTokenizerTest {
         assertThat(it.hasNext(), is(false));
     }
 
+    /**
+     * @deprecated testing deprecated method
+     *             {@link #Tokenizer.tokenizeSentences(Reader)}.
+     */
+    @Deprecated
     @Test
     public void tokenizerWithLongReader() throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -218,6 +228,11 @@ public class JapaneseTokenizerTest {
         assertThat(it.hasNext(), is(false));
     }
 
+    /**
+     * @deprecated testing deprecated method
+     *             {@link #Tokenizer.tokenizeSentences(Reader)}.
+     */
+    @Deprecated
     @Test
     public void tokenizerWithReaderAndNormalization() throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -240,7 +255,7 @@ public class JapaneseTokenizerTest {
     }
 
     @Test
-    public void tokenizerWithReadable() throws IOException {
+    public void tokenizerWithReadable() {
         StringReader reader = new StringReader("京都。東京.東京都。京都");
         Iterator<List<Morpheme>> it = tokenizer.tokenizedSentenceIterator(reader);
         assertThat(it.hasNext(), is(true));
@@ -255,7 +270,7 @@ public class JapaneseTokenizerTest {
     }
 
     @Test
-    public void tokenizerWithLongReadable() throws IOException {
+    public void tokenizerWithLongReadable() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < SentenceDetector.DEFAULT_LIMIT * 2 / 3; i++) {
             sb.append("京都。");
@@ -273,7 +288,7 @@ public class JapaneseTokenizerTest {
     }
 
     @Test
-    public void tokenizerWithReadableAndNormalization() throws IOException {
+    public void tokenizerWithReadableAndNormalization() {
         StringBuilder sb = new StringBuilder();
         sb.append("東京都…。");
         for (int i = 0; i < SentenceDetector.DEFAULT_LIMIT / 3; i++) {
