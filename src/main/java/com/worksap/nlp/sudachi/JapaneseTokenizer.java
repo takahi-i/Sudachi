@@ -122,7 +122,7 @@ class JapaneseTokenizer implements Tokenizer {
     }
 
     @Override
-    public Iterator<List<Morpheme>> tokenizedSentenceIterator(SplitMode mode, Readable readable) {
+    public Iterator<List<Morpheme>> lazyTokenizeSentences(SplitMode mode, Readable readable) {
         return new SentenceSplittingLazyAnalysis(mode, this, readable);
     }
 
