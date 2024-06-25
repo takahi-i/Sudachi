@@ -51,4 +51,49 @@ public class IOTools {
         }
         return totalRead;
     }
+
+    /**
+     * Wrapper class for Readable, that uses {@link #readAsMuchAsCan} to read and
+     * guarantees that the last character read is not a high surrogate unless it is
+     * the last one in the readable.
+     */
+    public static class SurrogateAwareReadable implements Readable {
+        private Readable readable;
+        char lastTrailingHighSurrogate;
+
+        SurrogateAwareReadable(Readable input) {
+            this.readable = input;
+        }
+
+        @Override
+        public int read(CharBuffer cb) throws IOException {
+            boolean trailingKept = false;
+            if (lastTrailingHighSurrogate != 0) {
+                cb.append(lastTrailingHighSurrogate);
+                lastTrailingHighSurrogate = 0;
+                trailingKept = true;
+            }
+
+            int nread = IOTools.readAsMuchAsCan(readable, cb);
+            if (nread < 0) {
+                if (!trailingKept) {
+                    return -1;
+                }
+                // the last char in the readable is a high surrogate and there is nothing we can
+                // do.
+                return 1;
+            }
+            if (trailingKept) {
+                nread += 1;
+            }
+
+            char lastChar = cb.get(cb.position() - 1);
+            if (Character.isHighSurrogate(lastChar)) {
+                lastTrailingHighSurrogate = lastChar;
+                cb.position(cb.position() - 1);
+                nread -= 1;
+            }
+            return nread;
+        }
+    }
 }

@@ -40,7 +40,7 @@ import com.worksap.nlp.sudachi.sentdetect.SentenceDetector;
     SentenceSplittingLazyAnalysis(Tokenizer.SplitMode mode, JapaneseTokenizer tokenizer, Readable readable) {
         this.mode = mode;
         this.tokenizer = tokenizer;
-        this.readable = readable;
+        this.readable = new IOTools.SurrogateAwareReadable(readable);
 
         this.buffer = CharBuffer.allocate(SentenceDetector.DEFAULT_LIMIT);
         this.buffer.flip();
@@ -72,7 +72,7 @@ import com.worksap.nlp.sudachi.sentdetect.SentenceDetector;
     private int reloadBuffer() throws IOException {
         buffer.position(bosPosition());
         buffer.compact();
-        int nread = IOTools.readAsMuchAsCan(readable, buffer);
+        int nread = readable.read(buffer);
         buffer.flip();
 
         // align with new buffer state

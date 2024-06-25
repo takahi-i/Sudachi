@@ -99,10 +99,11 @@ class JapaneseTokenizer implements Tokenizer {
 
     @Override
     public Iterable<MorphemeList> tokenizeSentences(SplitMode mode, Reader reader) throws IOException {
+        IOTools.SurrogateAwareReadable wrappedReader = new IOTools.SurrogateAwareReadable(reader);
         CharBuffer buffer = CharBuffer.allocate(SentenceDetector.DEFAULT_LIMIT);
         SentenceSplittingAnalysis analysis = new SentenceSplittingAnalysis(mode, this);
 
-        while (IOTools.readAsMuchAsCan(reader, buffer) > 0) {
+        while (wrappedReader.read(buffer) > 0) {
             buffer.flip();
             int length = analysis.tokenizeBuffer(buffer);
             if (length < 0) {
