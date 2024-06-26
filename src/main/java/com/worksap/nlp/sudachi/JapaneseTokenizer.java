@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Works Applications Co., Ltd.
+ * Copyright (c) 2021-2024 Works Applications Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.io.StringWriter;
 import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.json.Json;
@@ -98,10 +99,11 @@ class JapaneseTokenizer implements Tokenizer {
 
     @Override
     public Iterable<MorphemeList> tokenizeSentences(SplitMode mode, Reader reader) throws IOException {
+        IOTools.SurrogateAwareReadable wrappedReader = new IOTools.SurrogateAwareReadable(reader);
         CharBuffer buffer = CharBuffer.allocate(SentenceDetector.DEFAULT_LIMIT);
         SentenceSplittingAnalysis analysis = new SentenceSplittingAnalysis(mode, this);
 
-        while (IOTools.readAsMuchAsCan(reader, buffer) > 0) {
+        while (wrappedReader.read(buffer) > 0) {
             buffer.flip();
             int length = analysis.tokenizeBuffer(buffer);
             if (length < 0) {
@@ -117,6 +119,11 @@ class JapaneseTokenizer implements Tokenizer {
         }
 
         return sentences;
+    }
+
+    @Override
+    public Iterator<List<Morpheme>> lazyTokenizeSentences(SplitMode mode, Readable readable) {
+        return new SentenceSplittingLazyAnalysis(mode, this, readable);
     }
 
     @Override

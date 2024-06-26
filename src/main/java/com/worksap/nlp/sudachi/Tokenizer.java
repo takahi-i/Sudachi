@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Works Applications Co., Ltd.
+ * Copyright (c) 2021-2024 Works Applications Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package com.worksap.nlp.sudachi;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Reader;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * A tokenizer of morphological analysis.
@@ -52,7 +54,7 @@ public interface Tokenizer {
 
     /**
      * Tokenize sentences. This method divide an input text into sentences and
-     * tokenizes them.
+     * tokenizes them. When the text is long, it uses a lot of memory.
      *
      * @param mode
      *            a mode of splitting
@@ -64,7 +66,7 @@ public interface Tokenizer {
 
     /**
      * Tokenize sentences. Divide an input text into sentences and tokenize them
-     * with {@link SplitMode}.C.
+     * with {@link SplitMode}.C. When the text is long, it uses a lot of memory.
      *
      * @param text
      *            input text
@@ -77,7 +79,8 @@ public interface Tokenizer {
 
     /**
      * Read an input text from {@code input}, divide it into sentences and tokenize
-     * them.
+     * them. It reads all text in the input and uses a lot of memory when the text
+     * is long.
      *
      * @param mode
      *            a mode of splitting
@@ -86,12 +89,15 @@ public interface Tokenizer {
      * @return a result of tokenizing
      * @throws IOException
      *             if reading a stream is failed
+     * @deprecated use {@link #lazyTokenizeSentences(SplitMode, Readable)} instead.
      */
+    @Deprecated
     Iterable<MorphemeList> tokenizeSentences(SplitMode mode, Reader input) throws IOException;
 
     /**
      * Reads an input text from {@code input}, divide it into sentences and
-     * tokenizes them with {@link SplitMode}.C.
+     * tokenizes them with {@link SplitMode}.C. It reads all text in the input and
+     * uses a lot of memory when the text is long.
      *
      * @param input
      *            a reader of input text
@@ -99,9 +105,36 @@ public interface Tokenizer {
      * @throws IOException
      *             if reading a stream is failed
      * @see #tokenizeSentences(SplitMode,Reader)
+     * @deprecated use {@link #lazyTokenizeSentences(Readable)} instead.
      */
+    @Deprecated
     default Iterable<MorphemeList> tokenizeSentences(Reader input) throws IOException {
         return tokenizeSentences(SplitMode.C, input);
+    }
+
+    /**
+     * Read an input text from {@code input}, divide it into sentences and tokenize
+     * them. It reads the input lazily.
+     *
+     * @param mode
+     *            a mode of splitting
+     * @param input
+     *            a readable input text
+     * @return a result of tokenizing
+     */
+    Iterator<List<Morpheme>> lazyTokenizeSentences(SplitMode mode, Readable input);
+
+    /**
+     * Read an input text from {@code input}, divide it into sentences and tokenize
+     * them with {@link SplitMode}.C. It reads the input lazily.
+     *
+     * @param input
+     *            a readable input text
+     * @return a result of tokenizing
+     * @see #lazyTokenizeSentences(SplitMode,Readable)
+     */
+    default Iterator<List<Morpheme>> lazyTokenizeSentences(Readable input) {
+        return lazyTokenizeSentences(SplitMode.C, input);
     }
 
     /**
