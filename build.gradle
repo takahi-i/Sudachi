@@ -145,6 +145,7 @@ publishing {
                 url = "https://github.com/WorksApplications/Sudachi"
                 name = 'Sudachi'
                 description = project.description
+                packaging = 'jar'
 
                 licenses {
                     license {
