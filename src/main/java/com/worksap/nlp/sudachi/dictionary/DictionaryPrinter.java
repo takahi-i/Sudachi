@@ -23,48 +23,128 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.worksap.nlp.sudachi.WordId;
+
 public class DictionaryPrinter {
+    private final PrintStream output;
+    private final GrammarImpl grammar;
+    private final LexiconSet lexicon;
+    private final List<String> posStrings;
+    private final boolean isUser;
+    private final int entrySize;
 
-    private DictionaryPrinter() {
-    }
+    private DictionaryPrinter(PrintStream output, BinaryDictionary dic, BinaryDictionary base) {
+        this.output = output;
 
-    static void printDictionary(String filename, BinaryDictionary systemDict, PrintStream output) throws IOException {
-        GrammarImpl grammar = null;
+        if (base == null) {
+            isUser = false;
+            grammar = dic.getGrammar();
+            lexicon = new LexiconSet(dic.getLexicon(), grammar.getSystemPartOfSpeechSize());
+        } else {
+            isUser = true;
+            grammar = base.getGrammar();
+            lexicon = new LexiconSet(base.getLexicon(), grammar.getSystemPartOfSpeechSize());
 
-        try (BinaryDictionary dictionary = new BinaryDictionary(filename)) {
-            if (dictionary.getDictionaryHeader().isSystemDictionary()) {
-                grammar = dictionary.getGrammar();
-            } else if (systemDict == null) {
-                throw new IllegalArgumentException("the system dictionary is not specified");
-            } else {
-                grammar = systemDict.getGrammar();
-                if (DictionaryVersion.hasGrammar(dictionary.getDictionaryHeader().getVersion())) {
-                    grammar.addPosList(dictionary.getGrammar());
-                }
-            }
-
-            List<String> posStrings = new ArrayList<>();
-            for (short pid = 0; pid < grammar.getPartOfSpeechSize(); pid++) {
-                posStrings.add(String.join(",", grammar.getPartOfSpeechString(pid)));
-            }
-
-            Lexicon lexicon = dictionary.getLexicon();
-            for (int wordId = 0; wordId < lexicon.size(); wordId++) {
-                short leftId = lexicon.getLeftId(wordId);
-                short rightId = lexicon.getRightId(wordId);
-                short cost = lexicon.getCost(wordId);
-                WordInfo wordInfo = lexicon.getWordInfo(wordId);
-
-                char unitType = getUnitType(wordInfo);
-
-                output.println(String.format("%s,%d,%d,%d,%s,%s,%s,%s,%s,%c,%s,%s,%s", wordInfo.getSurface(), leftId,
-                        rightId, cost, wordInfo.getSurface(), posStrings.get(wordInfo.getPOSId()),
-                        wordInfo.getReadingForm(), wordInfo.getNormalizedForm(),
-                        wordIdToString(wordInfo.getDictionaryFormWordId()), unitType,
-                        splitToString(wordInfo.getAunitSplit()), splitToString(wordInfo.getBunitSplit()),
-                        splitToString(wordInfo.getWordStructure())));
+            lexicon.add(dic.getLexicon(), (short) grammar.getPartOfSpeechSize());
+            if (DictionaryVersion.hasGrammar(dic.getDictionaryHeader().getVersion())) {
+                grammar.addPosList(dic.getGrammar());
             }
         }
+
+        List<String> posStrings = new ArrayList<>();
+        for (short pid = 0; pid < grammar.getPartOfSpeechSize(); pid++) {
+            posStrings.add(String.join(",", grammar.getPartOfSpeechString(pid)));
+        }
+        this.posStrings = posStrings;
+
+        this.entrySize = dic.getLexicon().size();
+    }
+
+    private void printEntries() {
+        int dic = isUser ? 1 : 0;
+        for (int wordId = 0; wordId < entrySize; wordId++) {
+            printEntry(WordId.make(dic, wordId));
+        }
+    }
+
+    private void printEntry(int wordId) {
+        short leftId = lexicon.getLeftId(wordId);
+        short rightId = lexicon.getRightId(wordId);
+        short cost = lexicon.getCost(wordId);
+        WordInfo wordInfo = lexicon.getWordInfo(wordId);
+
+        field(maybeEscapeString(wordInfo.getSurface()));
+        field(leftId);
+        field(rightId);
+        field(cost);
+        field(maybeEscapeString(wordInfo.getSurface()));
+        field(posStrings.get(wordInfo.getPOSId()));
+        field(maybeEscapeString(wordInfo.getReadingForm()));
+        field(maybeEscapeString(wordInfo.getNormalizedForm()));
+        field(wordIdToString(wordInfo.getDictionaryFormWordId()));
+        field(getUnitType(wordInfo));
+        field(splitToString(wordInfo.getAunitSplit()));
+        field(splitToString(wordInfo.getBunitSplit()));
+        field(splitToString(wordInfo.getWordStructure()));
+        lastField(synonymIdList(wordInfo.getSynonymGoupIds()));
+        output.print("\n");
+    }
+
+    void field(short value) {
+        output.print(value);
+        output.print(',');
+    }
+
+    void field(char value) {
+        output.print(value);
+        output.print(',');
+    }
+
+    void field(String value) {
+        output.print(value);
+        output.print(',');
+    }
+
+    void lastField(String value) {
+        output.print(value);
+    }
+
+    String synonymIdList(int[] ints) {
+        if (ints.length == 0) {
+            return "*";
+        }
+        return String.join("/",
+                Arrays.stream(ints).boxed().map(i -> String.format("%06d", i)).collect(Collectors.toList()));
+    }
+
+    private static boolean hasCh(String value, int ch) {
+        return value.indexOf(ch) != -1;
+    }
+
+    /** escape string field of csv. */
+    private String maybeEscapeString(String value) {
+        boolean hasCommas = hasCh(value, ',');
+        boolean hasQuotes = hasCh(value, '"');
+        if (!hasCommas && !hasQuotes) {
+            return value;
+        }
+        return unicodeEscape(value, Arrays.asList('"', ','));
+    }
+
+    /** escape specified (ascii) chars as unicode codepoint */
+    private String unicodeEscape(String value, List<Character> targetChars) {
+        StringBuilder sb = new StringBuilder(value.length() + 10);
+        int len = value.length();
+        for (int i = 0; i < len; ++i) {
+            char c = value.charAt(i);
+            if (targetChars.contains(c)) {
+                // assume all target chars are ascii
+                sb.append("\\u00").append(Integer.toHexString(c));
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     static String wordIdToString(int wid) {
@@ -81,13 +161,36 @@ public class DictionaryPrinter {
         }
     }
 
-    static String splitToString(int[] split) {
+    private String splitToString(int[] split) {
         if (split.length == 0) {
             return "*";
+        }
+        return Arrays.stream(split).mapToObj(i -> wordRef(i)).collect(Collectors.joining("/"));
+    }
+
+    private String wordRef(int wordId) {
+        int dic = WordId.dic(wordId);
+        int word = WordId.word(wordId);
+        if (dic == 0) {
+            return Integer.toString(word);
         } else {
-            return Arrays.stream(split)
-                    .mapToObj(i -> (i >> 28 != 0) ? "U" + Integer.toString(i & ((1 << 28) - 1)) : Integer.toString(i))
-                    .collect(Collectors.joining("/"));
+            return "U" + Integer.toString(word);
+        }
+    }
+
+    static void printDictionary(String filename, BinaryDictionary systemDict, PrintStream output) throws IOException {
+        try (BinaryDictionary dictionary = new BinaryDictionary(filename)) {
+            DictionaryPrinter dp;
+            if (dictionary.getDictionaryHeader().isSystemDictionary()) {
+                dp = new DictionaryPrinter(output, dictionary, null);
+            } else if (systemDict == null) {
+                throw new IllegalArgumentException(
+                        "System dictionary (`-s` option) is required to print user dictionary: " + filename);
+            } else {
+                // user dictionary
+                dp = new DictionaryPrinter(output, dictionary, systemDict);
+            }
+            dp.printEntries();
         }
     }
 

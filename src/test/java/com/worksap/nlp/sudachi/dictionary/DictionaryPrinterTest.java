@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -44,7 +46,7 @@ public class DictionaryPrinterTest {
         Path folder = temporaryFolder.getRoot().toPath();
         td.getSystemDictData().writeData(folder.resolve("system.dic"));
         td.getUserDict1Data().writeData(folder.resolve("user.dic"));
-        Utils.copyResource(folder, "/unk.def");
+        Utils.copyResource(folder, "/unk.def", "/dict/matrix.def");
     }
 
     @Test
@@ -56,7 +58,7 @@ public class DictionaryPrinterTest {
             actuals = output.toString().split(System.lineSeparator());
         }
         assertThat(actuals.length, is(39));
-        assertThat(actuals[0], is("た,1,1,8729,た,助動詞,*,*,*,助動詞-タ,終止形-一般,タ,た,*,A,*,*,*"));
+        assertThat(actuals[0], is("た,1,1,8729,た,助動詞,*,*,*,助動詞-タ,終止形-一般,タ,た,*,A,*,*,*,*"));
     }
 
     @Test
@@ -70,8 +72,8 @@ public class DictionaryPrinterTest {
                 actuals = output.toString().split(System.lineSeparator());
             }
             assertThat(actuals.length, is(4));
-            assertThat(actuals[2], is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1"));
-            assertThat(actuals[3], is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*"));
+            assertThat(actuals[2], is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1,000001/000003"));
+            assertThat(actuals[3], is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*,*"));
         }
     }
 
@@ -87,5 +89,67 @@ public class DictionaryPrinterTest {
     public void readGrammarWithInvalidFile() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "unk.def");
         BinaryDictionary.loadSystem(inputFile.getPath());
+    }
+
+    @Test
+    public void rebuildAndReprintSystem() throws FileNotFoundException, IOException {
+        File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
+
+        String printed;
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+            DictionaryPrinter.printDictionary(inputFile.getPath(), null, ps);
+            printed = output.toString();
+        }
+
+        File lexiconFile = new File(temporaryFolder.getRoot(), "system_lex.csv");
+        FileOutputStream os = new FileOutputStream(lexiconFile);
+        os.write(printed.getBytes());
+        os.close();
+
+        File rebuiltDict = new File(temporaryFolder.getRoot(), "system.dic2");
+        File matrixFile = new File(temporaryFolder.getRoot(), "matrix.def");
+        DictionaryBuilder.main(new String[] { "-o", rebuiltDict.getPath(), "-m", matrixFile.getPath(), "-d",
+                "rebuild system dict", lexiconFile.getPath() });
+
+        String[] reprinted;
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+            DictionaryPrinter.printDictionary(rebuiltDict.getPath(), null, ps);
+            reprinted = output.toString().split(System.lineSeparator());
+        }
+
+        assertThat(reprinted, is(printed.split(System.lineSeparator())));
+    }
+
+    @Test
+    public void rebuildAndReprintUser() throws FileNotFoundException, IOException {
+        File inputFile = new File(temporaryFolder.getRoot(), "user.dic");
+        File systemDictFile = new File(temporaryFolder.getRoot(), "system.dic");
+
+        String printed;
+        try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+                DictionaryPrinter.printDictionary(inputFile.getPath(), systemDict, ps);
+                printed = output.toString();
+            }
+        }
+
+        File lexiconFile = new File(temporaryFolder.getRoot(), "user_lex.csv");
+        FileOutputStream os = new FileOutputStream(lexiconFile);
+        os.write(printed.getBytes());
+        os.close();
+
+        File rebuiltDict = new File(temporaryFolder.getRoot(), "user.dic2");
+        UserDictionaryBuilder.main(new String[] { "-o", rebuiltDict.getPath(), "-s", systemDictFile.getPath(), "-d",
+                "rebuild user dict", lexiconFile.getPath() });
+
+        String[] reprinted;
+        try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+                DictionaryPrinter.printDictionary(rebuiltDict.getPath(), systemDict, ps);
+                reprinted = output.toString().split(System.lineSeparator());
+            }
+        }
+
+        assertThat(reprinted, is(printed.split(System.lineSeparator())));
     }
 }
