@@ -51,11 +51,11 @@ public class DictionaryPrinter {
             }
         }
 
-        List<String> posStrings = new ArrayList<>();
+        List<String> poss = new ArrayList<>();
         for (short pid = 0; pid < grammar.getPartOfSpeechSize(); pid++) {
-            posStrings.add(String.join(",", grammar.getPartOfSpeechString(pid)));
+            poss.add(String.join(",", grammar.getPartOfSpeechString(pid)));
         }
-        this.posStrings = posStrings;
+        this.posStrings = poss;
 
         this.entrySize = dic.getLexicon().size();
     }
@@ -165,7 +165,7 @@ public class DictionaryPrinter {
         if (split.length == 0) {
             return "*";
         }
-        return Arrays.stream(split).mapToObj(i -> wordRef(i)).collect(Collectors.joining("/"));
+        return Arrays.stream(split).mapToObj(this::wordRef).collect(Collectors.joining("/"));
     }
 
     private String wordRef(int wordId) {

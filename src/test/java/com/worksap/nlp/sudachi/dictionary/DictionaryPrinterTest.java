@@ -92,7 +92,7 @@ public class DictionaryPrinterTest {
     }
 
     @Test
-    public void rebuildAndReprintSystem() throws FileNotFoundException, IOException {
+    public void rebuildAndReprintSystem() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
 
         String printed;
@@ -121,7 +121,7 @@ public class DictionaryPrinterTest {
     }
 
     @Test
-    public void rebuildAndReprintUser() throws FileNotFoundException, IOException {
+    public void rebuildAndReprintUser() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "user.dic");
         File systemDictFile = new File(temporaryFolder.getRoot(), "system.dic");
 
