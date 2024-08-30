@@ -33,7 +33,11 @@ public class DictionaryPrinter {
     private final boolean isUser;
     private final int entrySize;
 
-    private DictionaryPrinter(PrintStream output, BinaryDictionary dic, BinaryDictionary base) {
+    DictionaryPrinter(PrintStream output, BinaryDictionary dic, BinaryDictionary base) {
+        if (dic.getDictionaryHeader().isUserDictionary() && base == null) {
+            throw new IllegalArgumentException("System dictionary is required to print user dictionary");
+        }
+
         this.output = output;
 
         if (base == null) {
@@ -60,7 +64,7 @@ public class DictionaryPrinter {
         this.entrySize = dic.getLexicon().size();
     }
 
-    private void printEntries() {
+    void printEntries() {
         int dic = isUser ? 1 : 0;
         for (int wordId = 0; wordId < entrySize; wordId++) {
             printEntry(WordId.make(dic, wordId));
@@ -178,22 +182,6 @@ public class DictionaryPrinter {
         }
     }
 
-    static void printDictionary(String filename, BinaryDictionary systemDict, PrintStream output) throws IOException {
-        try (BinaryDictionary dictionary = new BinaryDictionary(filename)) {
-            DictionaryPrinter dp;
-            if (dictionary.getDictionaryHeader().isSystemDictionary()) {
-                dp = new DictionaryPrinter(output, dictionary, null);
-            } else if (systemDict == null) {
-                throw new IllegalArgumentException(
-                        "System dictionary (`-s` option) is required to print user dictionary: " + filename);
-            } else {
-                // user dictionary
-                dp = new DictionaryPrinter(output, dictionary, systemDict);
-            }
-            dp.printEntries();
-        }
-    }
-
     /**
      * Prints the contents of dictionary.
      *
@@ -214,25 +202,34 @@ public class DictionaryPrinter {
      *             if IO
      */
     public static void main(String[] args) throws IOException {
+        String systemDictPath = null;
+
+        int i = 0;
+        for (i = 0; i < args.length; i++) {
+            if (args[i].equals("-h")) {
+                System.err.println("usage: PrintDictionary [-s file] file");
+                System.err.println("\t-s file\tsystem dictionary");
+                return;
+            } else if (args[i].equals("-s") && i + 1 < args.length) {
+                systemDictPath = args[++i];
+            } else {
+                break;
+            }
+        }
+        if (i >= args.length) {
+            System.console().printf("target dictionary file is missing");
+            return;
+        }
+
+        String dictPath = args[i];
         BinaryDictionary systemDict = null;
-
-        try {
-            int i = 0;
-            for (i = 0; i < args.length; i++) {
-                if (args[i].equals("-s") && i + 1 < args.length) {
-                    systemDict = BinaryDictionary.loadSystem(args[++i]);
-                } else if (args[i].equals("-h")) {
-                    System.err.println("usage: PrintDictionary [-s file] file");
-                    System.err.println("\t-s file\tsystem dictionary");
-                    return;
-                } else {
-                    break;
-                }
+        try (BinaryDictionary dict = new BinaryDictionary(dictPath)) {
+            if (systemDictPath != null) {
+                systemDict = BinaryDictionary.loadSystem(systemDictPath);
             }
 
-            if (i < args.length) {
-                printDictionary(args[i], systemDict, System.out);
-            }
+            DictionaryPrinter printer = new DictionaryPrinter(System.out, dict, systemDict);
+            printer.printEntries();
         } finally {
             if (systemDict != null) {
                 systemDict.close();

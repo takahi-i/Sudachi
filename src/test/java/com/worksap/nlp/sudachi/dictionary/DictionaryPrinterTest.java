@@ -53,8 +53,11 @@ public class DictionaryPrinterTest {
     public void printWithSystemDict() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
         String[] actuals;
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-            DictionaryPrinter.printDictionary(inputFile.getPath(), null, ps);
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(output);
+                BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+            printer.printEntries();
             actuals = output.toString().split(System.lineSeparator());
         }
         assertThat(actuals.length, is(39));
@@ -67,8 +70,11 @@ public class DictionaryPrinterTest {
         File systemDictFile = new File(temporaryFolder.getRoot(), "system.dic");
         try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
             String[] actuals;
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-                DictionaryPrinter.printDictionary(inputFile.getPath(), systemDict, ps);
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    PrintStream ps = new PrintStream(output);
+                    BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
+                DictionaryPrinter printer = new DictionaryPrinter(ps, dict, systemDict);
+                printer.printEntries();
                 actuals = output.toString().split(System.lineSeparator());
             }
             assertThat(actuals.length, is(4));
@@ -80,8 +86,11 @@ public class DictionaryPrinterTest {
     @Test(expected = IllegalArgumentException.class)
     public void printWithUserDictWithoutGrammar() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "user.dic");
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-            DictionaryPrinter.printDictionary(inputFile.getPath(), null, ps);
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(output);
+                BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+            printer.printEntries();
         }
     }
 
@@ -96,8 +105,11 @@ public class DictionaryPrinterTest {
         File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
 
         String printed;
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-            DictionaryPrinter.printDictionary(inputFile.getPath(), null, ps);
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(output);
+                BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+            printer.printEntries();
             printed = output.toString();
         }
 
@@ -112,8 +124,11 @@ public class DictionaryPrinterTest {
                 "rebuild system dict", lexiconFile.getPath() });
 
         String[] reprinted;
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-            DictionaryPrinter.printDictionary(rebuiltDict.getPath(), null, ps);
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(output);
+                BinaryDictionary dict = new BinaryDictionary(rebuiltDict.getPath())) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+            printer.printEntries();
             reprinted = output.toString().split(System.lineSeparator());
         }
 
@@ -127,8 +142,12 @@ public class DictionaryPrinterTest {
 
         String printed;
         try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-                DictionaryPrinter.printDictionary(inputFile.getPath(), systemDict, ps);
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    PrintStream ps = new PrintStream(output);
+                    BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
+                DictionaryPrinter printer = new DictionaryPrinter(ps, dict, systemDict);
+                printer.printEntries();
+
                 printed = output.toString();
             }
         }
@@ -144,8 +163,11 @@ public class DictionaryPrinterTest {
 
         String[] reprinted;
         try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
-                DictionaryPrinter.printDictionary(rebuiltDict.getPath(), systemDict, ps);
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                    PrintStream ps = new PrintStream(output);
+                    BinaryDictionary dict = new BinaryDictionary(rebuiltDict.getPath())) {
+                DictionaryPrinter printer = new DictionaryPrinter(ps, dict, systemDict);
+                printer.printEntries();
                 reprinted = output.toString().split(System.lineSeparator());
             }
         }
