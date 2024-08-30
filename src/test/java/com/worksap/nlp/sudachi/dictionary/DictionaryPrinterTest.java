@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.Arrays;
 
 import com.worksap.nlp.sudachi.TestDictionary;
 import com.worksap.nlp.sudachi.Utils;
@@ -49,6 +50,14 @@ public class DictionaryPrinterTest {
         Utils.copyResource(folder, "/unk.def", "/dict/matrix.def");
     }
 
+    private String wordInfoToString(int wordId, WordInfo wordInfo) {
+        return String.format("%d, %s, %d, %d, %s, %d, %s, %s, %s, %s, %s, %s", wordId, wordInfo.getSurface(),
+                wordInfo.getLength(), wordInfo.getPOSId(), wordInfo.getNormalizedForm(),
+                wordInfo.getDictionaryFormWordId(), wordInfo.getDictionaryForm(), wordInfo.getReadingForm(),
+                Arrays.toString(wordInfo.getAunitSplit()), Arrays.toString(wordInfo.getBunitSplit()),
+                Arrays.toString(wordInfo.getWordStructure()), Arrays.toString(wordInfo.getSynonymGoupIds()));
+    }
+
     @Test
     public void printWithSystemDict() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
@@ -60,7 +69,7 @@ public class DictionaryPrinterTest {
             printer.printEntries();
             actuals = output.toString().split(System.lineSeparator());
         }
-        assertThat(actuals.length, is(39));
+        assertThat(actuals.length, is(40));
         assertThat(actuals[0], is("た,1,1,8729,た,助動詞,*,*,*,助動詞-タ,終止形-一般,タ,た,*,A,*,*,*,*"));
     }
 
@@ -101,14 +110,13 @@ public class DictionaryPrinterTest {
     }
 
     @Test
-    public void rebuildAndReprintSystem() throws IOException {
+    public void rebuildSystem() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "system.dic");
 
         String printed;
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(output);
-                BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
-            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+        BinaryDictionary original = new BinaryDictionary(inputFile.getPath());
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, original, null);
             printer.printEntries();
             printed = output.toString();
         }
@@ -123,33 +131,46 @@ public class DictionaryPrinterTest {
         DictionaryBuilder.main(new String[] { "-o", rebuiltDict.getPath(), "-m", matrixFile.getPath(), "-d",
                 "rebuild system dict", lexiconFile.getPath() });
 
-        String[] reprinted;
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(output);
-                BinaryDictionary dict = new BinaryDictionary(rebuiltDict.getPath())) {
-            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
-            printer.printEntries();
-            reprinted = output.toString().split(System.lineSeparator());
+        BinaryDictionary rebuilt = new BinaryDictionary(rebuiltDict.getPath());
+        Long version = original.getDictionaryHeader().getVersion();
+        assertThat(rebuilt.getDictionaryHeader().getVersion(), is(version));
+
+        if (DictionaryVersion.hasGrammar(version)) {
+            GrammarImpl grammarO = original.getGrammar();
+            GrammarImpl grammarR = rebuilt.getGrammar();
+            int originalPosSize = grammarO.getPartOfSpeechSize();
+            assertThat(grammarR.getPartOfSpeechSize(), is(originalPosSize));
+            for (short i = 0; i < originalPosSize; i++) {
+                assertThat(grammarR.getPartOfSpeechString(i), is(grammarO.getPartOfSpeechString(i)));
+            }
         }
 
-        assertThat(reprinted, is(printed.split(System.lineSeparator())));
+        DoubleArrayLexicon lexO = original.getLexicon();
+        DoubleArrayLexicon lexR = rebuilt.getLexicon();
+        int wordSize = lexO.size();
+        assertThat(lexR.size(), is(wordSize));
+        for (int i = 0; i < wordSize; i++) {
+            WordInfo wio = lexO.getWordInfo(i);
+            WordInfo wir = lexR.getWordInfo(i);
+            assertThat(wordInfoToString(i, wir), is(wordInfoToString(i, wio)));
+        }
+
+        original.close();
+        rebuilt.close();
     }
 
     @Test
-    public void rebuildAndReprintUser() throws IOException {
+    public void rebuildUser() throws IOException {
         File inputFile = new File(temporaryFolder.getRoot(), "user.dic");
         File systemDictFile = new File(temporaryFolder.getRoot(), "system.dic");
 
         String printed;
-        try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-                    PrintStream ps = new PrintStream(output);
-                    BinaryDictionary dict = new BinaryDictionary(inputFile.getPath())) {
-                DictionaryPrinter printer = new DictionaryPrinter(ps, dict, systemDict);
-                printer.printEntries();
-
-                printed = output.toString();
-            }
+        BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath());
+        BinaryDictionary original = new BinaryDictionary(inputFile.getPath());
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); PrintStream ps = new PrintStream(output)) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, original, systemDict);
+            printer.printEntries();
+            printed = output.toString();
         }
 
         File lexiconFile = new File(temporaryFolder.getRoot(), "user_lex.csv");
@@ -161,17 +182,32 @@ public class DictionaryPrinterTest {
         UserDictionaryBuilder.main(new String[] { "-o", rebuiltDict.getPath(), "-s", systemDictFile.getPath(), "-d",
                 "rebuild user dict", lexiconFile.getPath() });
 
-        String[] reprinted;
-        try (BinaryDictionary systemDict = BinaryDictionary.loadSystem(systemDictFile.getPath())) {
-            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
-                    PrintStream ps = new PrintStream(output);
-                    BinaryDictionary dict = new BinaryDictionary(rebuiltDict.getPath())) {
-                DictionaryPrinter printer = new DictionaryPrinter(ps, dict, systemDict);
-                printer.printEntries();
-                reprinted = output.toString().split(System.lineSeparator());
+        BinaryDictionary rebuilt = new BinaryDictionary(rebuiltDict.getPath());
+        Long version = original.getDictionaryHeader().getVersion();
+        assertThat(rebuilt.getDictionaryHeader().getVersion(), is(version));
+
+        if (DictionaryVersion.hasGrammar(version)) {
+            GrammarImpl grammarO = original.getGrammar();
+            GrammarImpl grammarR = rebuilt.getGrammar();
+            int originalPosSize = grammarO.getPartOfSpeechSize();
+            assertThat(grammarR.getPartOfSpeechSize(), is(originalPosSize));
+            for (short i = 0; i < originalPosSize; i++) {
+                assertThat(grammarR.getPartOfSpeechString(i), is(grammarO.getPartOfSpeechString(i)));
             }
         }
 
-        assertThat(reprinted, is(printed.split(System.lineSeparator())));
+        DoubleArrayLexicon lexO = original.getLexicon();
+        DoubleArrayLexicon lexR = rebuilt.getLexicon();
+        int wordSize = lexO.size();
+        assertThat(lexR.size(), is(wordSize));
+        for (int i = 0; i < wordSize; i++) {
+            WordInfo wio = lexO.getWordInfo(i);
+            WordInfo wir = lexR.getWordInfo(i);
+            assertThat(wordInfoToString(i, wir), is(wordInfoToString(i, wio)));
+        }
+
+        original.close();
+        rebuilt.close();
+        systemDict.close();
     }
 }
