@@ -16,8 +16,11 @@
 
 package com.worksap.nlp.sudachi.dictionary;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -182,6 +185,28 @@ public class DictionaryPrinter {
         }
     }
 
+    static class FileOrStdoutPrintStream extends PrintStream {
+        private boolean isFile;
+
+        FileOrStdoutPrintStream() {
+            super(System.out, true);
+            isFile = false;
+        }
+
+        FileOrStdoutPrintStream(String fileName) throws FileNotFoundException, UnsupportedEncodingException {
+            super(new FileOutputStream(fileName), false, "UTF-8");
+            isFile = true;
+        }
+
+        @Override
+        public void close() {
+            flush();
+            if (isFile) {
+                super.close();
+            }
+        }
+    }
+
     /**
      * Prints the contents of dictionary.
      *
@@ -203,13 +228,17 @@ public class DictionaryPrinter {
      */
     public static void main(String[] args) throws IOException {
         String systemDictPath = null;
+        String outputFileName = null;
 
         int i = 0;
         for (i = 0; i < args.length; i++) {
             if (args[i].equals("-h")) {
-                System.err.println("usage: PrintDictionary [-s file] file");
+                System.err.println("usage: PrintDictionary [-o file] [-s file] file");
+                System.err.println("\t-o file\toutput to file");
                 System.err.println("\t-s file\tsystem dictionary");
                 return;
+            } else if (args[i].equals("-o") && i + 1 < args.length) {
+                outputFileName = args[++i];
             } else if (args[i].equals("-s") && i + 1 < args.length) {
                 systemDictPath = args[++i];
             } else {
@@ -223,12 +252,14 @@ public class DictionaryPrinter {
 
         String dictPath = args[i];
         BinaryDictionary systemDict = null;
-        try (BinaryDictionary dict = new BinaryDictionary(dictPath)) {
+        try (BinaryDictionary dict = new BinaryDictionary(dictPath);
+                PrintStream output = outputFileName == null ? new FileOrStdoutPrintStream()
+                        : new FileOrStdoutPrintStream(outputFileName);) {
             if (systemDictPath != null) {
                 systemDict = BinaryDictionary.loadSystem(systemDictPath);
             }
 
-            DictionaryPrinter printer = new DictionaryPrinter(System.out, dict, systemDict);
+            DictionaryPrinter printer = new DictionaryPrinter(output, dict, systemDict);
             printer.printEntries();
         } finally {
             if (systemDict != null) {

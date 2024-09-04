@@ -21,12 +21,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.FileNotFoundException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import com.worksap.nlp.sudachi.TestDictionary;
 import com.worksap.nlp.sudachi.Utils;
@@ -90,6 +95,30 @@ public class DictionaryPrinterTest {
             assertThat(actuals[2], is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1,000001/000003"));
             assertThat(actuals[3], is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*,*"));
         }
+    }
+
+    @Test
+    public void printUnescape() throws IOException {
+        File lexFile = temporaryFolder.newFile();
+        try (FileWriter writer = new FileWriter(lexFile)) {
+            writer.write("\\u002c,0,0,1000,\\u002c,補助記号,読点,*,*,*,*,\\u002C,、,*,A,*,*,*,*\n");
+        }
+
+        String matrixFilePath = new File(temporaryFolder.getRoot(), "matrix.def").getPath();
+        File dictFile = temporaryFolder.newFile();
+        DictionaryBuilder
+                .main(new String[] { "-o", dictFile.getPath(), "-m", matrixFilePath, "-d", "test", lexFile.getPath() });
+
+        String[] actuals;
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                PrintStream ps = new PrintStream(output);
+                BinaryDictionary dict = new BinaryDictionary(dictFile.getPath())) {
+            DictionaryPrinter printer = new DictionaryPrinter(ps, dict, null);
+            printer.printEntries();
+            actuals = output.toString().split(System.lineSeparator());
+        }
+        assertThat(actuals.length, is(1));
+        assertThat(actuals[0], is("\\u002c,0,0,1000,\\u002c,補助記号,読点,*,*,*,*,\\u002c,、,*,A,*,*,*,*"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -209,5 +238,19 @@ public class DictionaryPrinterTest {
         original.close();
         rebuilt.close();
         systemDict.close();
+    }
+
+    @Test
+    public void commandLineUser() throws IOException {
+        String systemDictPath = new File(temporaryFolder.getRoot(), "system.dic").getPath();
+        String userDictPath = new File(temporaryFolder.getRoot(), "user.dic").getPath();
+        String outputFileName = temporaryFolder.newFile().getPath();
+
+        DictionaryPrinter.main(new String[] { "-o", outputFileName, "-s", systemDictPath, userDictPath });
+
+        List<String> lines = Files.lines(Paths.get(outputFileName)).collect(Collectors.toList());
+        assertThat(lines.size(), is(4));
+        assertThat(lines.get(2), is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1,000001/000003"));
+        assertThat(lines.get(3), is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*,*"));
     }
 }
