@@ -16,17 +16,16 @@
 
 package com.worksap.nlp.sudachi.dictionary;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.Console;
 
 import com.worksap.nlp.sudachi.WordId;
+import com.worksap.nlp.sudachi.SudachiCommandLine.FileOrStdoutPrintStream;
 
 public class DictionaryPrinter {
     private final PrintStream output;
@@ -65,6 +64,13 @@ public class DictionaryPrinter {
         this.posStrings = poss;
 
         this.entrySize = dic.getLexicon().size();
+    }
+
+    private static void printUsage() {
+        Console console = System.console();
+        console.printf("usage: PrintDictionary [-o file] [-s file] file\n");
+        console.printf("\t-o file\toutput to file\n");
+        console.printf("\t-s file\tsystem dictionary\n");
     }
 
     void printEntries() {
@@ -185,28 +191,6 @@ public class DictionaryPrinter {
         }
     }
 
-    static class FileOrStdoutPrintStream extends PrintStream {
-        private boolean isFile;
-
-        FileOrStdoutPrintStream() {
-            super(System.out, true);
-            isFile = false;
-        }
-
-        FileOrStdoutPrintStream(String fileName) throws FileNotFoundException, UnsupportedEncodingException {
-            super(new FileOutputStream(fileName), false, "UTF-8");
-            isFile = true;
-        }
-
-        @Override
-        public void close() {
-            flush();
-            if (isFile) {
-                super.close();
-            }
-        }
-    }
-
     /**
      * Prints the contents of dictionary.
      *
@@ -233,9 +217,7 @@ public class DictionaryPrinter {
         int i = 0;
         for (i = 0; i < args.length; i++) {
             if (args[i].equals("-h")) {
-                System.err.println("usage: PrintDictionary [-o file] [-s file] file");
-                System.err.println("\t-o file\toutput to file");
-                System.err.println("\t-s file\tsystem dictionary");
+                printUsage();
                 return;
             } else if (args[i].equals("-o") && i + 1 < args.length) {
                 outputFileName = args[++i];
