@@ -91,7 +91,8 @@ public class DictionaryPrinterTest {
                 actuals = output.toString().split(System.lineSeparator());
             }
             assertThat(actuals.length, is(4));
-            assertThat(actuals[2], is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1,000001/000003"));
+            assertThat(actuals[2], is(
+                    "東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,\"東京,名詞,固有名詞,地名,一般,*,*,トウキョウ/府,名詞,普通名詞,一般,*,*,*,フ\",*,\"東京,名詞,固有名詞,地名,一般,*,*,トウキョウ/府,名詞,普通名詞,一般,*,*,*,フ\",000001/000003"));
             assertThat(actuals[3], is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*,*"));
         }
     }
@@ -249,7 +250,8 @@ public class DictionaryPrinterTest {
 
         List<String> lines = Files.lines(Paths.get(outputFileName)).collect(Collectors.toList());
         assertThat(lines.size(), is(4));
-        assertThat(lines.get(2), is("東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,5/U1,*,5/U1,000001/000003"));
+        assertThat(lines.get(2), is(
+                "東京府,6,6,2816,東京府,名詞,固有名詞,地名,一般,*,*,トウキョウフ,東京府,*,B,\"東京,名詞,固有名詞,地名,一般,*,*,トウキョウ/府,名詞,普通名詞,一般,*,*,*,フ\",*,\"東京,名詞,固有名詞,地名,一般,*,*,トウキョウ/府,名詞,普通名詞,一般,*,*,*,フ\",000001/000003"));
         assertThat(lines.get(3), is("すだち,6,6,2816,すだち,被子植物門,双子葉植物綱,ムクロジ目,ミカン科,ミカン属,スダチ,スダチ,すだち,*,A,*,*,*,*"));
     }
 }

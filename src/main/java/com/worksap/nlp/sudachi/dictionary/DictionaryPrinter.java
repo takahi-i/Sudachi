@@ -94,7 +94,7 @@ public class DictionaryPrinter {
         field(posStrings.get(wordInfo.getPOSId()));
         field(maybeEscapeString(wordInfo.getReadingForm()));
         field(maybeEscapeString(wordInfo.getNormalizedForm()));
-        field(wordIdToString(wordInfo.getDictionaryFormWordId()));
+        field(wordRefToString(wordInfo.getDictionaryFormWordId()));
         field(getUnitType(wordInfo));
         field(splitToString(wordInfo.getAunitSplit()));
         field(splitToString(wordInfo.getBunitSplit()));
@@ -160,8 +160,11 @@ public class DictionaryPrinter {
         return sb.toString();
     }
 
-    static String wordIdToString(int wid) {
-        return (wid < 0) ? "*" : Integer.toString(wid);
+    String wordRefToString(int wid) {
+        if (wid < 0) {
+            return "*";
+        }
+        return "\"" + wordRef(wid) + "\"";
     }
 
     static char getUnitType(WordInfo info) {
@@ -178,17 +181,16 @@ public class DictionaryPrinter {
         if (split.length == 0) {
             return "*";
         }
-        return Arrays.stream(split).mapToObj(this::wordRef).collect(Collectors.joining("/"));
+        return "\"" + Arrays.stream(split).mapToObj(this::wordRef).collect(Collectors.joining("/")) + "\"";
     }
 
     private String wordRef(int wordId) {
-        int dic = WordId.dic(wordId);
-        int word = WordId.word(wordId);
-        if (dic == 0) {
-            return Integer.toString(word);
-        } else {
-            return "U" + Integer.toString(word);
-        }
+        WordInfo info = lexicon.getWordInfo(wordId);
+        String surface = maybeEscapeString(info.getSurface());
+        short posId = info.getPOSId();
+        String pos = grammar.getPartOfSpeechString(posId).toString();
+        String reading = maybeEscapeString(info.getReadingForm());
+        return String.format("%s,%s,%s", surface, pos, reading);
     }
 
     /**
