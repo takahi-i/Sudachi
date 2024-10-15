@@ -1,5 +1,6 @@
 #!/bin/bash
 # Tokenize given file, with each of small/core/full dict and A/B/C mode.
+# assume `benchmark_setup.sh` is called beforehand.
 
 set -eux
 DIR=$(dirname "$(readlink -f "$0")")
