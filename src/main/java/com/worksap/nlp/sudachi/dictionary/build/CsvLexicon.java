@@ -114,6 +114,7 @@ public class CsvLexicon implements WriteDictionary {
         POS pos = new POS(cols.get(5), cols.get(6), cols.get(7), cols.get(8), cols.get(9), cols.get(10));
         short posId = posTable.getId(pos);
 
+        entry.dictionaryFormString = cols.get(13);
         entry.aUnitSplitString = cols.get(15);
         entry.bUnitSplitString = cols.get(16);
         entry.wordStructureString = cols.get(17);
@@ -131,12 +132,55 @@ public class CsvLexicon implements WriteDictionary {
 
         entry.wordInfo = new WordInfo(cols.get(4), // headword
                 (short) cols.get(0).getBytes(StandardCharsets.UTF_8).length, posId, cols.get(12), // normalizedForm
-                (cols.get(13).equals("*") ? -1 : Integer.parseInt(cols.get(13))), // dictionaryFormWordId
-                "", // dummy
+                -1, "", // dictioanyForm (dummy)
                 cols.get(11), // readingForm
                 null, null, null, synonymGids);
 
         return entry;
+    }
+
+    /**
+     * Parse dictionary_form string in lexicon as referring word id.
+     * 
+     * Allow id (line no) or triple format. Forbid to refer word outside this
+     * lexicon (user word cannot use system word as dictionary form).
+     */
+    int parseDictionaryForm(String str) {
+        if (str.equals("*")) {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(str);
+        } catch (NumberFormatException e) {
+            // noop
+        }
+        int wordId = wordToId(str);
+        if (wordId < 0) {
+            throw new IllegalArgumentException("couldn't find " + str + " in the dictionaries");
+        }
+        if (!wordRefMatches(str, wordId)) {
+            throw new IllegalArgumentException("dictionary form must exist in the same lexicon");
+        }
+        return wordId;
+    }
+
+    /**
+     * Check if wordRef matches to the word in this lexicon.
+     */
+    boolean wordRefMatches(String ref, int wordId) {
+        if (wordId < 0 || entries.size() <= wordId) {
+            return false;
+        }
+        WordEntry entry = entries.get(wordId);
+
+        String[] cols = ref.split(",", 8);
+        String headword = unescape(cols[0]);
+        POS pos = new POS(Arrays.copyOfRange(cols, 1, 7));
+        short posId = posTable.getId(pos);
+        String reading = unescape(cols[7]);
+
+        return headword.equals(entry.headword) && posId == entry.wordInfo.getPOSId()
+                && reading.equals(entry.wordInfo.getReadingForm());
     }
 
     int[] parseSynonymGids(String str) {
@@ -246,7 +290,7 @@ public class CsvLexicon implements WriteDictionary {
                 buffer.putLength(wi.getLength());
                 buffer.putShort(wi.getPOSId());
                 buffer.putEmptyIfEqual(wi.getNormalizedForm(), wi.getSurface());
-                buffer.putInt(wi.getDictionaryFormWordId());
+                buffer.putInt(parseDictionaryForm(entry.dictionaryFormString));
                 buffer.putEmptyIfEqual(wi.getReadingForm(), wi.getSurface());
                 buffer.putInts(parseSplitInfo(entry.aUnitSplitString));
                 buffer.putInts(parseSplitInfo(entry.bUnitSplitString));
@@ -277,6 +321,7 @@ public class CsvLexicon implements WriteDictionary {
     public static class WordEntry {
         String headword;
         WordInfo wordInfo;
+        String dictionaryFormString;
         String aUnitSplitString;
         String bUnitSplitString;
         String wordStructureString;
