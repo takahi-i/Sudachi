@@ -57,7 +57,7 @@ public class StringUtil {
     }
 
     public static ByteBuffer readAllBytes(URL url) throws IOException {
-        return readAllBytes(url, ByteOrder.BIG_ENDIAN);
+        return readAllBytes(url, ByteOrder.LITTLE_ENDIAN);
     }
 
     public static ByteBuffer readAllBytes(URL url, ByteOrder order) throws IOException {
@@ -67,7 +67,7 @@ public class StringUtil {
     }
 
     public static ByteBuffer readAllBytes(InputStream inputStream) throws IOException {
-        return readAllBytes(inputStream, ByteOrder.BIG_ENDIAN);
+        return readAllBytes(inputStream, ByteOrder.LITTLE_ENDIAN);
     }
 
     public static ByteBuffer readAllBytes(InputStream inputStream, ByteOrder order) throws IOException {

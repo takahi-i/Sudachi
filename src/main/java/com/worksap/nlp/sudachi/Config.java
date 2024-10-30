@@ -960,7 +960,7 @@ public class Config {
                 if (Objects.equals(url.getProtocol(), "file")) {
                     return MMap.map(url.getPath());
                 }
-                return StringUtil.readAllBytes(url, ByteOrder.LITTLE_ENDIAN);
+                return StringUtil.readAllBytes(url);
             }
 
             @Override
