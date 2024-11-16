@@ -44,7 +44,7 @@ public class WordSegmentationFormatter extends MorphemeFormatterPlugin {
     @Override
     public void setUp() throws IOException {
         super.setUp();
-        delimiter = settings.getString("delimiter", " ");
+        delimiter = settings.getString("delimiter", ""); // set delimiter
         eosString = settings.getString("eos", "\n");
     }
 

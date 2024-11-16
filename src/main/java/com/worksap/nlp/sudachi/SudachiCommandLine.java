@@ -78,7 +78,11 @@ public class SudachiCommandLine {
                     for (List<Morpheme> sentence : tokenizer.tokenizeSentences(mode, line)) {
                         formatter.printSentence(sentence, output);
                     }
-                    if (isWordSegmentation) {
+                    /**
+                     * note: printSentence は各文にたいして改行を出力するためここで改行すると２回改行が行われてしまう。
+                     * そこで空行以外の改行を出力しないことにする。
+                     */
+                    if (isWordSegmentation && line.length() == 0) {
                         output.print("\n");
                     }
                 } catch (RuntimeException e) {
